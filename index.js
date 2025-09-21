@@ -66,7 +66,7 @@ app.post("/upload-text", async (req, res) => {
       partes: partes.length,
     });
   } catch (err) {
-    console.error("Erro Supabase:", err);
+    console.error("Erro Supabase (upload):", err);
     res.status(500).json({ status: "erro", mensagem: "Falha ao salvar no Supabase" });
   }
 });
@@ -77,10 +77,14 @@ app.get("/livro/:livroId", async (req, res) => {
   const tabela = `Livro-${livroId}`;
 
   try {
-    // Busca todos os dados sem depender do nome exato da coluna de id
     const { data, error } = await supabase
       .from(tabela)
-      .select("*");
+      .select("*")
+      .order("id", { ascending: true });
+
+    // 🔎 Log para depuração
+    console.log(`📖 Buscando tabela: ${tabela}`);
+    console.log("➡️ Supabase retorno:", { data, error });
 
     if (error) throw error;
 
@@ -88,14 +92,8 @@ app.get("/livro/:livroId", async (req, res) => {
       return res.status(404).json({ status: "erro", mensagem: "Livro não encontrado ou vazio" });
     }
 
-    // Detecta automaticamente o nome da coluna do texto
-    const textoColuna = Object.keys(data[0]).find(k => k.toLowerCase() === "trecho" || k.toLowerCase() === "texto");
-    if (!textoColuna) {
-      return res.status(500).json({ status: "erro", mensagem: "Coluna de texto não encontrada na tabela" });
-    }
-
-    // Junta todos os trechos
-    const textoCompleto = data.map(t => t[textoColuna]).join(" ");
+    // Junta todos os trechos da coluna Trecho
+    const textoCompleto = data.map(t => t.Trecho).join(" ");
 
     res.json({
       status: "ok",
@@ -104,7 +102,7 @@ app.get("/livro/:livroId", async (req, res) => {
       textoCompleto,
     });
   } catch (err) {
-    console.error("Erro Supabase:", err);
+    console.error("Erro Supabase (get livro):", err);
     res.status(500).json({ status: "erro", mensagem: "Falha ao obter o livro" });
   }
 });
